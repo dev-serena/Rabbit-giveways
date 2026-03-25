@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rabbit Picker</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #3b82f6;
+    --blue-bright: #60a5fa;
+    --blue-deep: #1d4ed8;
+    --dark: #080c14;
+    --card: #0d1424;
+    --card2: #111827;
+    --border: #1e2d45;
+    --text: #e8f0fe;
+    --muted: #4a6080;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--dark); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background: radial-gradient(ellipse 60% 40% at 20% 10%, rgba(59,130,246,0.07) 0%, transparent 70%),
+                radial-gradient(ellipse 50% 50% at 80% 80%, rgba(99,102,241,0.05) 0%, transparent 70%);
+  }
+  .container { max-width: 900px; margin: 0 auto; padding: 36px 24px 80px; position: relative; z-index: 1; }
+
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 40px; }
+  .logo { width: 48px; height: 48px; border-radius: 50%; overflow: hidden; flex-shrink: 0; border: 2px solid var(--border); box-shadow: 0 0 20px rgba(59,130,246,0.3); }
+  .logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+  h1 span { color: var(--blue-bright); }
+  .badge { margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--blue); border: 1px solid var(--border); padding: 4px 12px; border-radius: 20px; background: rgba(59,130,246,0.07); }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 26px 28px; margin-bottom: 20px; }
+  .section-label { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .input-row { display: flex; gap: 10px; }
+  .url-input { flex: 1; background: #070c18; border: 1px solid var(--border); border-radius: 10px; padding: 13px 16px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+  .url-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+  .url-input::placeholder { color: #2a3a50; }
+  .btn-primary { background: var(--blue); border: none; border-radius: 10px; padding: 13px 22px; color: white; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; cursor: pointer; transition: background 0.2s, transform 0.1s; white-space: nowrap; }
+  .btn-primary:hover { background: var(--blue-bright); }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-top: 16px; }
+  .video-card { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; cursor: pointer; transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s; }
+  .video-card:hover { border-color: var(--blue); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(59,130,246,0.15); }
+  .video-card.selected { border-color: var(--blue-bright); box-shadow: 0 0 0 2px rgba(96,165,250,0.3), 0 8px 24px rgba(59,130,246,0.2); }
+  .video-thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; background: #0d1424; }
+  .video-info { padding: 10px 12px 12px; }
+  .video-title { font-size: 12px; font-weight: 700; line-height: 1.4; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 4px; }
+  .video-meta { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  .fetch-bar { display: flex; align-items: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .selected-title { flex: 1; font-size: 12px; color: var(--blue-bright); font-family: 'DM Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .selected-title.empty { color: var(--muted); }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; opacity: 0; transform: translateY(10px); transition: all 0.4s ease; }
+  .stats.visible { opacity: 1; transform: translateY(0); }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+  .stat-value { font-size: 26px; font-weight: 800; line-height: 1; margin-bottom: 4px; color: var(--text); }
+  .stat-value.blue { color: var(--blue-bright); }
+  .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; font-weight: 700; }
+
+  .spin-section { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 36px 28px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; opacity: 0; transform: translateY(10px); transition: all 0.4s ease 0.1s; }
+  .spin-section.visible { opacity: 1; transform: translateY(0); }
+
+  .wheel-wrap { position: relative; margin-bottom: 32px; }
+  #wheelCanvas { display: block; filter: drop-shadow(0 0 40px rgba(59,130,246,0.4)); }
+  .wheel-pointer { position: absolute; top: 50%; right: -26px; transform: translateY(-50%); }
+  .wheel-pointer svg { filter: drop-shadow(0 0 8px rgba(96,165,250,0.9)); }
+
+  .spin-btn { background: linear-gradient(135deg, var(--blue-deep), var(--blue)); border: none; border-radius: 50px; padding: 18px 60px; color: white; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 16px; cursor: pointer; letter-spacing: 3px; text-transform: uppercase; transition: all 0.25s; box-shadow: 0 4px 24px rgba(59,130,246,0.45); }
+  .spin-btn:hover { box-shadow: 0 6px 36px rgba(59,130,246,0.65); transform: translateY(-2px); }
+  .spin-btn:active { transform: scale(0.97); }
+  .spin-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .winner-box { margin-top: 28px; background: linear-gradient(135deg, rgba(29,78,216,0.18), rgba(59,130,246,0.08)); border: 1px solid rgba(96,165,250,0.4); border-radius: 16px; padding: 28px 32px; text-align: center; width: 100%; display: none; animation: pop 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes pop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .winner-box.show { display: block; }
+  .winner-label { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--blue-bright); font-weight: 700; margin-bottom: 10px; }
+  .winner-name { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+  .winner-comment { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); line-height: 1.7; max-width: 440px; margin: 0 auto; }
+
+  .comments-section { opacity: 0; transform: translateY(10px); transition: all 0.4s ease 0.2s; }
+  .comments-section.visible { opacity: 1; transform: translateY(0); }
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .search-input { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; outline: none; width: 200px; transition: border-color 0.2s; }
+  .search-input:focus { border-color: var(--blue); }
+  .search-input::placeholder { color: #2a3a50; }
+  .comments-list { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; max-height: 400px; overflow-y: auto; }
+  .comments-list::-webkit-scrollbar { width: 4px; }
+  .comments-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .comment-row { display: flex; align-items: flex-start; gap: 12px; padding: 13px 18px; border-bottom: 1px solid rgba(30,45,69,0.5); transition: background 0.15s; }
+  .comment-row:last-child { border-bottom: none; }
+  .comment-row:hover { background: rgba(59,130,246,0.04); }
+  .comment-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .comment-body { flex: 1; min-width: 0; }
+  .comment-author { font-size: 12px; font-weight: 700; margin-bottom: 2px; color: #a0b8d8; }
+  .comment-text { font-family: 'DM Mono', monospace; font-size: 11px; color: #3a5070; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .loading { display: none; text-align: center; padding: 28px; color: var(--muted); font-size: 13px; }
+  .loading.show { display: block; }
+  .spinner { width: 26px; height: 26px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error { background: rgba(30,10,10,0.8); border: 1px solid #3a1515; border-radius: 10px; padding: 12px 16px; font-size: 12px; color: #f87171; margin-top: 12px; display: none; font-family: 'DM Mono', monospace; }
+  .error.show { display: block; }
+
+  .confetti-piece { position: fixed; pointer-events: none; z-index: 9999; animation: cfall linear forwards; }
+  @keyframes cfall { 0% { opacity: 1; } 80% { opacity: 1; } 100% { transform: var(--et); opacity: 0; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">
+      <img src="https://yt3.googleusercontent.com/J6qhkLqPwav2aezU2n8_DFGHk0WGvdiq4aWMAblNHb_P0pwvfh_g8v6nmJxf9IsdwtC8MJ2iKw=s72-c-k-c0x00ffffff-no-rj" alt="logo">
+    </div>
+    <h1>Rabbit <span>Picker</span></h1>
+    <div class="badge">YT Giveaway Tool</div>
+  </header>
+
+  <div class="card">
+    <div class="section-label">Latest Videos</div>
+    <div class="error" id="channelError"></div>
+    <div class="loading" id="channelLoading" style="padding:20px 0">
+      <div class="spinner"></div>Loading videos...
+    </div>
+    <div class="video-grid" id="videoGrid"></div>
+    <div class="fetch-bar" id="fetchBar" style="display:none">
+      <div class="selected-title empty" id="selectedTitle">Select a video above</div>
+      <button class="btn-primary" id="fetchBtn" onclick="fetchComments()" disabled>Fetch Comments</button>
+    </div>
+  </div>
+
+  <div class="loading" id="loading"><div class="spinner"></div><span id="loadingText">Fetching comments...</span></div>
+  <div class="error" id="errorMsg" style="margin-bottom:16px"></div>
+
+  <div class="stats" id="stats">
+    <div class="stat-card"><div class="stat-value" id="statTotal">0</div><div class="stat-label">Total Comments</div></div>
+    <div class="stat-card"><div class="stat-value blue" id="statUnique">0</div><div class="stat-label">Unique Authors</div></div>
+    <div class="stat-card"><div class="stat-value" id="statDupes">0</div><div class="stat-label">Duplicates</div></div>
+    <div class="stat-card"><div class="stat-value" id="statPages">0</div><div class="stat-label">Pages Fetched</div></div>
+  </div>
+
+  <div class="spin-section" id="spinSection">
+    <div class="wheel-wrap">
+      <canvas id="wheelCanvas" width="380" height="380"></canvas>
+      <div class="wheel-pointer">
+        <svg width="34" height="34" viewBox="0 0 34 34">
+          <defs>
+            <linearGradient id="pg" x1="100%" y1="0%" x2="0%" y2="0%">
+              <stop offset="0%" stop-color="#60a5fa"/>
+              <stop offset="100%" stop-color="#1d4ed8"/>
+            </linearGradient>
+          </defs>
+          <polygon points="34,17 5,5 9,17 5,29" fill="url(#pg)"/>
+          <polygon points="34,17 5,5 9,17 5,29" fill="white" opacity="0.15"/>
+        </svg>
+      </div>
+    </div>
+    <button class="spin-btn" id="spinBtn" onclick="spinWheel()">✦ SPIN ✦</button>
+    <div class="winner-box" id="winnerBox">
+      <div class="winner-label">✦ Winner ✦</div>
+      <div class="winner-name" id="winnerName"></div>
+      <div class="winner-comment" id="winnerComment"></div>
+    </div>
+  </div>
+
+  <div class="comments-section" id="commentsSection">
+    <div class="section-header">
+      <div class="section-label" style="margin:0;flex:1">Unique commenters</div>
+      <input type="text" class="search-input" id="searchInput" placeholder="Search..." oninput="filterComments()">
+    </div>
+    <div style="margin-top:12px"><div class="comments-list" id="commentsList"></div></div>
+  </div>
+
+</div>
+<script>
+const API_KEY = 'AIzaSyCCRDa5WYTNhz4ErTLQ7AcLmEUPqc6axjA';
+const CHANNEL_HANDLE = '@MonsieuRabbit'; // e.g. 'MrBeast' or '@MrBeast'
+
+let allCommenters = [], filteredCommenters = [];
+let selectedVideoId = null, selectedVideoTitle = '';
+
+const AVATAR_COLORS = [
+  ['#1e3a5f','#60a5fa'],['#1a3a2a','#34d399'],['#3b1f5e','#a78bfa'],
+  ['#3b2a0a','#fbbf24'],['#3b1414','#f87171'],['#1a2f3b','#38bdf8'],
+];
+
+async function yt(path) {
+  return new Promise((resolve, reject) => {
+    const cbName = '_ytcb_' + Math.random().toString(36).slice(2);
+    const sep = path.includes('?') ? '&' : '?';
+    const url = `https://www.googleapis.com/youtube/v3/${path}${sep}key=${API_KEY}&callback=${cbName}`;
+    window[cbName] = (data) => {
+      delete window[cbName];
+      document.head.removeChild(script);
+      if (data.error) reject(new Error(data.error.message || JSON.stringify(data.error)));
+      else resolve(data);
+    };
+    const script = document.createElement('script');
+    script.src = url;
+    script.onerror = () => { delete window[cbName]; reject(new Error('Network error — check API key and internet connection.')); };
+    document.head.appendChild(script);
+  });
+}
+
+function parseDuration(iso) {
+  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!m) return 0;
+  return (parseInt(m[1]||0)*3600)+(parseInt(m[2]||0)*60)+parseInt(m[3]||0);
+}
+
+function formatDuration(s) {
+  const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60;
+  if(h>0) return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showChanError(msg) { const e=document.getElementById('channelError'); e.textContent=msg; e.classList.add('show'); }
+function hideChanError() { document.getElementById('channelError').classList.remove('show'); }
+function showError(msg) { const e=document.getElementById('errorMsg'); e.textContent=msg; e.classList.add('show'); }
+function hideError() { document.getElementById('errorMsg').classList.remove('show'); }
+
+async function resolveChannelId(raw) {
+  console.log('[Rabbit Picker] Resolving channel:', raw);
+
+  // Direct channel ID
+  if (/^UC[\w-]{22}$/.test(raw)) { console.log('Direct ID'); return raw; }
+
+  // URL with /channel/UCxxx
+  const cMatch = raw.match(/channel\/(UC[\w-]{22})/);
+  if (cMatch) { console.log('URL channel ID'); return cMatch[1]; }
+
+  // Extract handle (with or without @)
+  const hMatch = raw.match(/@([\w.-]+)/);
+  const handle = hMatch ? hMatch[1] : raw.replace(/^@/,'').replace(/.*youtube\.com\//,'').trim();
+  console.log('[Rabbit Picker] Trying handle:', handle);
+
+  // Try forHandle (works for handles registered after 2022)
+  const r1 = await yt(`channels?part=id&forHandle=${encodeURIComponent(handle)}`);
+  console.log('[Rabbit Picker] forHandle result:', r1);
+  if (r1.items?.[0]?.id) return r1.items[0].id;
+
+  // Try forUsername (works for older channels)
+  const r2 = await yt(`channels?part=id&forUsername=${encodeURIComponent(handle)}`);
+  console.log('[Rabbit Picker] forUsername result:', r2);
+  if (r2.items?.[0]?.id) return r2.items[0].id;
+
+  // Fallback: search
+  const r3 = await yt(`search?part=snippet&type=channel&q=${encodeURIComponent(handle)}&maxResults=1`);
+  console.log('[Rabbit Picker] search result:', r3);
+  return r3.items?.[0]?.snippet?.channelId || null;
+}
+
+async function fetchChannelVideos() {
+  const raw = CHANNEL_HANDLE;
+  console.log('[Rabbit Picker] Starting fetch for:', raw);
+  document.getElementById('channelLoading').classList.add('show');
+  document.getElementById('videoGrid').innerHTML = '';
+  document.getElementById('fetchBar').style.display = 'none';
+  hideChanError();
+  try {
+    if (!API_KEY || API_KEY === 'YOUR_YOUTUBE_API_KEY_HERE') throw new Error('API key not set — edit the API_KEY constant at the top of the script.');
+    if (!CHANNEL_HANDLE || CHANNEL_HANDLE === 'YOUR_CHANNEL_HANDLE_HERE') throw new Error('Channel handle not set — edit the CHANNEL_HANDLE constant at the top of the script.');
+
+    const channelId = await resolveChannelId(raw);
+    console.log('[Rabbit Picker] Channel ID resolved:', channelId);
+    if (!channelId) throw new Error(`Channel "${raw}" not found. Use the exact @handle or the UC... channel ID.`);
+
+    const chRes = await yt(`channels?part=contentDetails&id=${channelId}`);
+    console.log('[Rabbit Picker] Channel details:', chRes);
+    const uploadsId = chRes.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+    if (!uploadsId) throw new Error('No uploads playlist found. The channel may be private or empty.');
+
+    const plRes = await yt(`playlistItems?part=snippet,contentDetails&playlistId=${uploadsId}&maxResults=30`);
+    console.log('[Rabbit Picker] Playlist items:', plRes.items?.length);
+    const items = plRes.items || [];
+    if (!items.length) throw new Error('No videos found in uploads playlist.');
+
+    const videoIds = items.map(i => i.contentDetails.videoId).join(',');
+    const durRes = await yt(`videos?part=contentDetails,statistics&id=${videoIds}`);
+    const durMap = {};
+    for (const v of (durRes.items||[])) durMap[v.id] = { dur: parseDuration(v.contentDetails.duration), views: v.statistics.viewCount };
+
+    const longVideos = items.filter(i => (durMap[i.contentDetails.videoId]?.dur||0) > 60).slice(0,10);
+    console.log('[Rabbit Picker] Long videos found:', longVideos.length);
+    // If nothing passes the 60s filter, show all videos anyway
+    const toShow = longVideos.length ? longVideos : items.slice(0,10);
+
+    renderVideoGrid(toShow, durMap);
+    document.getElementById('fetchBar').style.display = 'flex';
+  } catch(e) {
+    console.error('[Rabbit Picker] Error:', e);
+    showChanError(e.message);
+  }
+  document.getElementById('channelLoading').classList.remove('show');
+}
+
+function renderVideoGrid(videos, durMap) {
+  document.getElementById('videoGrid').innerHTML = videos.map(v => {
+    const vid = v.contentDetails.videoId;
+    const title = v.snippet.title;
+    const thumb = v.snippet.thumbnails?.medium?.url || v.snippet.thumbnails?.default?.url || '';
+    const dur = formatDuration(durMap[vid]?.dur||0);
+    const views = Number(durMap[vid]?.views||0).toLocaleString();
+    return `<div class="video-card" data-id="${vid}" data-title="${esc(title)}" onclick="selectVideo(this)">
+      <img class="video-thumb" src="${thumb}" alt="" loading="lazy">
+      <div class="video-info">
+        <div class="video-title">${esc(title)}</div>
+        <div class="video-meta">${dur} · ${views} views</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectVideo(el) {
+  document.querySelectorAll('.video-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedVideoId = el.dataset.id;
+  selectedVideoTitle = el.dataset.title;
+  const t = document.getElementById('selectedTitle');
+  t.textContent = selectedVideoTitle; t.classList.remove('empty');
+  document.getElementById('fetchBtn').disabled = false;
+}
+
+async function fetchComments() {
+  if (!selectedVideoId) return;
+  hideError();
+  document.getElementById('fetchBtn').disabled = true;
+  document.getElementById('loading').classList.add('show');
+  ['stats','spinSection','commentsSection'].forEach(id => document.getElementById(id).classList.remove('visible'));
+  const commentMap = new Map();
+  let pageToken='', pages=0, totalComments=0;
+  try {
+    do {
+      const data = await yt(`commentThreads?part=snippet&videoId=${selectedVideoId}&maxResults=100&textFormat=plainText${pageToken?'&pageToken='+pageToken:''}`);
+      if (data.error) throw new Error(data.error.message);
+      for (const item of (data.items||[])) {
+        const s = item.snippet.topLevelComment.snippet;
+        totalComments++;
+        if (!commentMap.has(s.authorDisplayName)) commentMap.set(s.authorDisplayName, s.textDisplay);
+      }
+      pageToken = data.nextPageToken||'';
+      pages++;
+      document.getElementById('loadingText').textContent = `Fetching comments... (${totalComments} so far)`;
+      if (pages >= 20) break;
+    } while (pageToken);
+
+    allCommenters = Array.from(commentMap.entries()).map(([author,comment]) => ({author,comment}));
+    document.getElementById('statTotal').textContent = totalComments.toLocaleString();
+    document.getElementById('statUnique').textContent = allCommenters.length.toLocaleString();
+    document.getElementById('statDupes').textContent = (totalComments-allCommenters.length).toLocaleString();
+    document.getElementById('statPages').textContent = pages;
+    document.getElementById('loading').classList.remove('show');
+    ['stats','spinSection','commentsSection'].forEach(id => document.getElementById(id).classList.add('visible'));
+    filteredCommenters = [...allCommenters];
+    renderComments(filteredCommenters);
+    drawWheel(allCommenters.map(c => c.author));
+  } catch(e) {
+    document.getElementById('loading').classList.remove('show');
+    showError('Error: '+e.message);
+  }
+  document.getElementById('fetchBtn').disabled = false;
+}
+
+function renderComments(list) {
+  const el = document.getElementById('commentsList');
+  if (!list.length) { el.innerHTML='<div style="padding:24px;text-align:center;color:#2a3a50;font-size:13px">No results</div>'; return; }
+  el.innerHTML = list.map((c,i) => {
+    const [bg,fg] = AVATAR_COLORS[i%AVATAR_COLORS.length];
+    return `<div class="comment-row">
+      <div class="comment-avatar" style="background:${bg};color:${fg}">${c.author.charAt(0).toUpperCase()}</div>
+      <div class="comment-body">
+        <div class="comment-author">${esc(c.author)}</div>
+        <div class="comment-text">${esc(c.comment)}</div>
+      </div></div>`;
+  }).join('');
+}
+
+function filterComments() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  filteredCommenters = allCommenters.filter(c => c.author.toLowerCase().includes(q)||c.comment.toLowerCase().includes(q));
+  renderComments(filteredCommenters);
+}
+
+// ── WHEEL ──────────────────────────────────────────────────────────
+const PALETTES = [
+  ['#1d4ed8','#2563eb','#3b82f6','#60a5fa','#1e40af','#3b6fe8','#1a56c4','#4f8ef5'],
+  ['#0e7490','#0891b2','#06b6d4','#22d3ee','#155e75','#0d9fbe','#0e7a96','#1bb8d8'],
+  ['#6d28d9','#7c3aed','#8b5cf6','#a78bfa','#5b21b6','#7b3fe0','#6425c2','#9470f0'],
+  ['#0f766e','#0d9488','#14b8a6','#2dd4bf','#115e59','#0c8e84','#107870','#28c5b3'],
+  ['#1d4ed8','#0891b2','#7c3aed','#0d9488','#2563eb','#8b5cf6','#06b6d4','#60a5fa'],
+];
+
+let palIdx = 0;
+
+function lerpCol(hex, amt) {
+  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return `rgb(${Math.min(255,r+amt*255|0)},${Math.min(255,g+amt*255|0)},${Math.min(255,b+amt*255|0)})`;
+}
+
+function drawWheel(names, rotation=0) {
+  const canvas = document.getElementById('wheelCanvas');
+  const ctx = canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height, cx=W/2, cy=H/2, r=W/2-10;
+  const count = Math.min(names.length, 30);
+  const slice = (2*Math.PI)/count;
+  const pal = PALETTES[palIdx%PALETTES.length];
+
+  ctx.clearRect(0,0,W,H);
+
+  // Outer glow
+  const og = ctx.createRadialGradient(cx,cy,r-4,cx,cy,r+10);
+  og.addColorStop(0,'rgba(96,165,250,0.3)'); og.addColorStop(1,'rgba(96,165,250,0)');
+  ctx.beginPath(); ctx.arc(cx,cy,r+10,0,Math.PI*2); ctx.fillStyle=og; ctx.fill();
+
+  for (let i=0;i<count;i++) {
+    const start = rotation + i*slice, end = start+slice;
+    const mid = start+slice/2;
+    ctx.save();
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,start,end); ctx.closePath();
+    const gx1=cx+Math.cos(mid)*r*0.15, gy1=cy+Math.sin(mid)*r*0.15;
+    const gx2=cx+Math.cos(mid)*r, gy2=cy+Math.sin(mid)*r;
+    const sg=ctx.createLinearGradient(gx1,gy1,gx2,gy2);
+    const col=pal[i%pal.length];
+    sg.addColorStop(0,lerpCol(col,0.18)); sg.addColorStop(1,col);
+    ctx.fillStyle=sg; ctx.fill();
+    ctx.strokeStyle='rgba(5,10,22,0.65)'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.restore();
+
+    // Label
+    const lx=cx+Math.cos(mid)*r*0.67, ly=cy+Math.sin(mid)*r*0.67;
+    ctx.save();
+    ctx.translate(lx,ly); ctx.rotate(mid+Math.PI/2);
+    ctx.shadowColor='rgba(0,0,0,0.7)'; ctx.shadowBlur=5;
+    ctx.fillStyle='rgba(255,255,255,0.93)';
+    ctx.font=`700 ${Math.min(12,170/count)}px Syne,sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(names[i].length>13?names[i].slice(0,12)+'…':names[i],0,0);
+    ctx.restore();
+  }
+
+  // Rim
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.strokeStyle='rgba(96,165,250,0.5)'; ctx.lineWidth=2.5; ctx.stroke();
+
+  // Tick marks
+  for(let t=0;t<count;t++){
+    const a=rotation+t*slice;
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(a);
+    ctx.beginPath(); ctx.moveTo(r-3,0); ctx.lineTo(r+4,0);
+    ctx.strokeStyle='rgba(255,255,255,0.22)'; ctx.lineWidth=1.2; ctx.stroke();
+    ctx.restore();
+  }
+
+  // Decorative inner ring
+  ctx.beginPath(); ctx.arc(cx,cy,r*0.14,0,Math.PI*2);
+  ctx.fillStyle='#080c14'; ctx.fill();
+  ctx.strokeStyle='rgba(96,165,250,0.5)'; ctx.lineWidth=2; ctx.stroke();
+
+  // Center hub
+  const hub=ctx.createRadialGradient(cx-3,cy-3,1,cx,cy,r*0.08);
+  hub.addColorStop(0,'#93c5fd'); hub.addColorStop(0.5,'#3b82f6'); hub.addColorStop(1,'#1e40af');
+  ctx.beginPath(); ctx.arc(cx,cy,r*0.08,0,Math.PI*2);
+  ctx.fillStyle=hub; ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=1; ctx.stroke();
+}
+
+let isSpinning=false, currentAngle=0;
+
+function spinWheel(){
+  if(isSpinning||!allCommenters.length) return;
+  isSpinning=true;
+  document.getElementById('spinBtn').disabled=true;
+  document.getElementById('winnerBox').classList.remove('show');
+  palIdx++;
+  const names=allCommenters.map(c=>c.author);
+  const count=Math.min(names.length,30);
+  const slice=(2*Math.PI)/count;
+  const winnerIdx=Math.floor(Math.random()*count);
+  const spins=6+Math.random()*5;
+  const target=currentAngle+spins*Math.PI*2+(count-winnerIdx)*slice-slice/2;
+  const dur=4500+Math.random()*1500;
+  const t0=performance.now(), a0=currentAngle;
+  function ease(t){return 1-Math.pow(1-t,4);}
+  function animate(now){
+    const p=Math.min((now-t0)/dur,1);
+    const angle=a0+(target-a0)*ease(p);
+    drawWheel(names,angle); currentAngle=angle;
+    if(p<1){requestAnimationFrame(animate);}
+    else{
+      isSpinning=false;
+      document.getElementById('spinBtn').disabled=false;
+      currentAngle=target%(2*Math.PI);
+      showWinner(allCommenters[winnerIdx%allCommenters.length]);
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+function showWinner(w){
+  document.getElementById('winnerName').textContent=w.author;
+  document.getElementById('winnerComment').textContent='"'+w.comment+'"';
+  document.getElementById('winnerBox').classList.add('show');
+  spawnConfetti();
+}
+
+// ── CONFETTI ───────────────────────────────────────────────────────
+function spawnConfetti(){
+  const colors=['#3b82f6','#60a5fa','#93c5fd','#f59e0b','#fbbf24','#10b981','#34d399',
+    '#ef4444','#f87171','#8b5cf6','#a78bfa','#ec4899','#f472b6','#06b6d4','#38bdf8',
+    '#84cc16','#a3e635','#f97316','#fb923c','#ffffff','#fde68a','#bfdbfe'];
+  const shapes=['circle','square','rect','triangle','diamond'];
+  for(let i=0;i<150;i++){
+    const el=document.createElement('canvas');
+    el.className='confetti-piece';
+    const sz=7+Math.random()*12; el.width=sz; el.height=sz;
+    const ctx=el.getContext('2d');
+    const col=colors[Math.floor(Math.random()*colors.length)];
+    const shape=shapes[Math.floor(Math.random()*shapes.length)];
+    ctx.fillStyle=col;
+    if(shape==='circle'){ctx.beginPath();ctx.arc(sz/2,sz/2,sz/2,0,Math.PI*2);ctx.fill();}
+    else if(shape==='square'){ctx.fillRect(0,0,sz,sz);}
+    else if(shape==='rect'){ctx.fillRect(0,sz*0.2,sz,sz*0.6);}
+    else if(shape==='triangle'){ctx.beginPath();ctx.moveTo(sz/2,0);ctx.lineTo(sz,sz);ctx.lineTo(0,sz);ctx.closePath();ctx.fill();}
+    else{ctx.save();ctx.translate(sz/2,sz/2);ctx.rotate(Math.PI/4);ctx.fillRect(-sz*0.35,-sz*0.35,sz*0.7,sz*0.7);ctx.restore();}
+    const sx=5+Math.random()*90;
+    const dx=(Math.random()-0.5)*60;
+    const dur=1600+Math.random()*2400;
+    const rot=Math.random()*900-450;
+    el.style.cssText=`left:${sx}vw;top:-14px;width:${sz}px;height:${sz}px;animation-duration:${dur}ms;animation-delay:${Math.random()*700}ms;--et:translateX(${dx.toFixed(1)}vw) translateY(110vh) rotate(${rot}deg);`;
+    document.body.appendChild(el);
+    el.addEventListener('animationend',()=>el.remove());
+  }
+}
+window.addEventListener('DOMContentLoaded', fetchChannelVideos);
+</script>
+</body>
+</html>
